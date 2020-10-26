@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#20201026 renamed to daipture to release it
+#20190802 -f
+#20180301 initial version
+set -e
+trap "exit 1" TERM
+export TOP_PID=$$
+function helpme() {
+	if [[ "$1" = "" ]]
+	then
+		cat /proc/$$/fd/255 | sed -n '/^#HELPME_START/,/^#HELPME_END/p' | grep -v "^#HELPME_" | grep -e "	-\|^#" | grep -- "$(echo $OPT_SHORT | sed -e "s/://g" | sed -e "s/\(.\)/\t-\1 \\\|/g" | sed -e "s/$/^#$COMMAND\t\\\|^#[A-Z]/" )" | sed -e "s/^#$COMMAND\t/\t/; s/^#//" 1>&2
+	else
+		echo -e "$1" 1>&2
+	fi
+	kill -s TERM $TOP_PID
+}
+
+OPTS=$(getopt -o hvf --long help,verbose,force -n daipture -- "$@")
+eval set -- "$OPTS"
+while :
+do
+	case "$1" in
+#HELPME_START
+#NAME
+#	daipture, screen capturing tool
+#SYNOPSIS
+#	daipture [-h | --help] [-v | --verbose] [-f | --force] VIDEO
+#OPTIONS
+#EXAMPLE:
+#	daipture demo.mp4
+#	#then click the window you want to record to start, press q to quit if the session is done
+		-h | --help)
+			helpme ;;
+		-v | --verbose)
+			set -x
+			shift ;;
+		-f | --force) #override the video file if it exists
+			FORCE=yes
+			shift ;;
+#HELPME_END
+		--)
+			VIDEO=$2
+			shift 2 || helpme "ERR-001: VIDEO filename is missing"
+			break ;;
+		*)
+			break ;;
+	esac
+done
+
+if [ -f "$VIDEO" ] 
+then
+	if [ "$FORCE" = "yes" ]
+	then
+		rm "$VIDEO"
+	else
+		helpme "ERR-002: $VIDEO already exists, use -f to override it"
+	fi
+fi
+which xwininfo &> /dev/null || helpme "ERR-003: command xwininfo is missing"
+which ffmpeg &> /dev/null || helpme "ERR-004: command ffmpeg is missing"
+[ -n "$DISPLAY" ] || helpme "ERR-005: DISPLAY is not set, run it under x2go/vnc or local GUI"
+read X Y W H < <( xwininfo | grep "Width\|Height\|Absolute upper-left" |cut -d : -f 2 | sed -e "N;N;N;s/\n / /g" )
+((H-=H%2))
+((W-=W%2))
+ffmpeg -f x11grab -r 25 -video_size ${W}x${H} -i $DISPLAY+$X,$Y -vcodec libx264 -crf 23 -profile:v baseline -level 3.0 -pix_fmt yuv420p -movflags faststart "$VIDEO"
