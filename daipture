@@ -28,7 +28,6 @@ do
 #OPTIONS
 #EXAMPLE:
 #	daipture demo.mp4
-#	#then click the window you want to record to start, press q to quit if the session is done
 		-h | --help)
 			helpme ;;
 		-v | --verbose)
@@ -59,6 +58,7 @@ fi
 which xwininfo &> /dev/null || helpme "ERR-003: command xwininfo is missing"
 which ffmpeg &> /dev/null || helpme "ERR-004: command ffmpeg is missing"
 [ -n "$DISPLAY" ] || helpme "ERR-005: DISPLAY is not set, run it under x2go/vnc or local GUI"
+echo "Please click the window you want to record to start, press q to quit when the capturing is done"
 read X Y W H < <( xwininfo | grep "Width\|Height\|Absolute upper-left" |cut -d : -f 2 | sed -e "N;N;N;s/\n / /g" )
 ((H-=H%2))
 ((W-=W%2))
