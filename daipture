@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#20201026 renamed to daipture to release it
-#20190802 -f
-#20180301 initial version
+# Author: Manhong Dai, manhongdai@gmail.com
+# License: GPLv3
+# https://github.com/daimh/daipture
 set -e
 trap "exit 1" TERM
 export TOP_PID=$$
